@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Fate tools</title>
+	<script src=js/jquery.js type=application/javascript></script>
+	<script src=js/knockout.js type=application/javascript></script>
+	<script src=js/knockout.validation.js type=application/javascript></script>
+	<script src=js/knockout.dragdrop.js type=application/javascript></script>
+	<script src=js/knockout.punches.js type=application/javascript></script>
+	<script type=application/javascript>
+		ko.punches.enableAll()
+	</script>
+
+	<style>
+		body  { font:16px Arial,"DejaVu Sans",sans-serif; }
+		label { display:block; text-align:right; position:relative; }
+		.full { width:800px; margin:0 auto; }
+		input, textarea { width:80%; vertical-align:middle; border:1px solid silver; margin:0.25em 0; padding:0.125em; font:16px Arial,"DejaVu Sans",sans-serif; }
+		.box  { display:inline-block; width:80%; text-align:left; border:1px solid silver; vertical-align:middle; margin:0.25em 0; padding:0.125em; }
+		.tall { min-height:6em; }
+		input.validationElement, textarea.validationElement { border-color:pink; box-shadow:red 0 0 4px -2px; }
+		.validationMessage { position:absolute; color:red; margin:0.5em; white-space:nowrap; }
+	</style>
+</head>
+<body>
+
+<section id=character_creation class=full data-bind=if:true>
+	<template id=basics_edit>
+		<label for=cc_high_concept data-bind=validationElement:character.highConcept>
+			High concept: <input id=cc_high_concept textInput={{character.highConcept}} />
+		</label>
+		<label for=cc_trouble data-bind=validationElement:character.trouble>
+			Trouble: <input id=cc_trouble textInput={{character.trouble}} />
+		</label>
+		<label for=cc_name data-bind=validationElement:character.name>
+			Name: <input id=cc_name textInput={{character.name}} />
+		</label>
+		<button data-bind="click:next">Next</button>
+	</template>
+
+	<template id=basics_view>
+		<label>High concept: <span class=box>{{character.highConcept}}</span></label>
+		<label>Trouble: <span class=box>{{character.trouble}}</span></label>
+		<label>Name: <span class=box>{{character.name}}</span></label>
+	</template>
+
+	<p data-bind=template:{name:basicsTemplate}></p>
+
+	<template id=phase_edit>
+		<label for=cc_phase_{{ord}} data-bind=validationElement:phase.adventure>
+			Phase {{ord}}: <textarea id=cc_phase_{{ord}} class=tall textInput={{phase.adventure}} rows=4></textarea>
+		</label>
+		<label for=cc_aspect_{{ord}} data-bind=validationElement:phase.aspect>
+			Aspect: <input id=cc_aspect_{{ord}} textInput={{phase.aspect}} />
+		</label>
+		<button data-bind="click:$parent.next">Next</button>
+	</template>
+
+	<template id=phase_view>
+		<label>Phase {{ord}}: <span class="box tall">{{phase.adventure}}</span></label>
+		<label>Aspect: <span class=box>{{phase.aspect}}</span></label>
+	</template>
+
+	<!--ko foreach:phases-->
+		<!--ko if:ord<=$parent.status()-->
+			<p data-bind=template:{name:template}></p>
+		<!--/ko-->
+	<!--/ko-->
+</section>
+
+<section id=character_sheet data-bind=if:false>
+	Name: <input textInput={{name}} /><br>
+	Description:<br>
+	<textarea textInput={{description}}></textarea><br>
+	Refresh: <input value={{refresh}} readonly=readonly /><br>
+	Aspects:<br>
+	{{#foreach: aspects}}
+	<input textInput={{$data}} /><br>
+	{{/foreach}}
+	Skills:<br>
+	{{#foreach: [5,4,3,2,1]}}
+	+{{$data}}{{#foreach: [0,1,2,3,4]}}<input textInput={{$root.skills[$parent][$data]}} />{{/foreach}}<br>
+	{{/foreach}}
+</section>
+
+<section id=dragdrop data-bind=if:false>
+	{{#foreach: dragFrom}}
+	<span style="border:1px solid red" data-bind=dragZone:{name:'fröta'}>{{$data}}</span>
+	{{/foreach}}
+	<div data-bind="foreach:dropTo, dropZone:{accepts:'fröta',drop:drop}" style="border:1px dotted blue; height:40px; min-width:100px">
+		<span style="border:1px solid blue">{{$data}}</span>
+	</div>
+</section>
+
+<section id=validation data-bind=if:false>
+	<form action=data:text/plain,{{property}} data-bind=validationOptions:{insertMessages:false} method=post>
+		<input value={{property}} />
+		<p data-bind=validationMessage:property></p>
+		<input type=submit>
+	</form>
+</section>
+
+<script type=application/javascript>
+
+ko.validation.init({
+	decorateInputElement:true
+})
+ko.validation.rules.nonEmpty = {
+	validator : function(value, enable) {
+			return value && value.trim().length
+		},
+	message : 'The value should not be empty.'
+}
+ko.validation.registerExtenders()
+
+var cc = {}
+cc.status = ko.observable(0)
+cc.next = function() {
+	var st = cc.status()
+	switch (st) {
+	case 0:
+		if (cc.basicsOk()) {
+			cc.basicsTemplate('basics_view')
+			return cc.status(1)
+		} else {
+			return cc.basicsErrors.showAllMessages()
+		}
+	case 1:
+	case 2:
+	case 3:
+		var ph = cc.phases[st - 1]
+		if (ph.ok()) {
+			ph.template('phase_view')
+			return cc.status(st + 1)
+		} else {
+			return ph.errors.showAllMessages()
+		}
+	}
+}
+
+var character = {}
+character.highConcept = ko.observable().extend({
+	nonEmpty : {
+		message : 'A character must have a high concept!'
+	}
+})
+character.trouble = ko.observable().extend({
+	nonEmpty : {
+		message : 'A character must have a trouble!'
+	}
+})
+character.name = ko.observable().extend({
+	nonEmpty : {
+		message : 'A character must have a name!'
+	}
+})
+cc.basicsErrors = ko.validation.group([ character.highConcept, character.trouble, character.name ])
+cc.basicsOk = ko.computed(function() { return cc.basicsErrors().length === 0 })
+cc.basicsTemplate = ko.observable('basics_edit')
+cc.character = character
+
+character.phases = []
+cc.phases = []
+for (var i = 1; i <= 3; i++) {
+	var phase = {}
+	phase.adventure = ko.observable().extend({
+		nonEmpty : {
+			message : 'Fill in with some interesting story detail...'
+		}
+	})
+	phase.aspect = ko.observable().extend({
+		nonEmpty : {
+			message : 'Come on, try to come up with some aspect!'
+		}
+	})
+	character.phases.push(phase)
+
+	var ccph = { phase : phase }
+	ccph.errors = ko.validation.group([ phase.adventure, phase.aspect ])
+	ccph.ok = ko.computed(function(ph) { return function() { return ph.errors().length === 0 } }(ccph))
+	ccph.template = ko.observable('phase_edit')
+	ccph.ord = i
+	cc.phases.push(ccph)
+}
+
+ko.applyBindings(cc, document.getElementById('character_creation'))
+
+var character = {
+	name : ko.observable(),
+	description : ko.observable(),
+	refresh : ko.observable(0),
+	aspects : ko.observableArray(new Array(5)),
+	skills : {
+			5 : [ko.observable(), ko.observable(), ko.observable(), ko.observable(), ko.observable()],
+			4 : [],
+			3 : [],
+			2 : [],
+			1 : []
+		}
+}
+ko.applyBindings(character, document.getElementById('character_sheet'))
+
+var dragDrop = {
+	dragFrom : ko.observableArray(['Pier','Pom','Persec','Öa']),
+	dropTo : ko.observableArray(),
+	drop : function(data, model) { model.dragFrom.remove(data); model.dropTo.push(data) }
+}
+ko.applyBindings(dragDrop, document.getElementById('dragdrop'))
+
+var validation = { property : ko.observable().extend({ required : { message : 'Missing value!', params : true } }) }
+ko.applyBindings(validation, document.getElementById('validation'))
+</script>
+
+</body>
+</html>
