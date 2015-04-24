@@ -18,54 +18,94 @@
 		input, textarea { width:80%; vertical-align:middle; border:1px solid silver; margin:0.25em 0; padding:0.125em; font:16px Arial,"DejaVu Sans",sans-serif; }
 		.box  { display:inline-block; width:80%; text-align:left; border:1px solid silver; vertical-align:middle; margin:0.25em 0; padding:0.125em; }
 		.tall { min-height:6em; }
+		small { font-size:70%; }
 		input.validationElement, textarea.validationElement { border-color:pink; box-shadow:red 0 0 4px -2px; }
 		.validationMessage { position:absolute; color:red; margin:0.5em; white-space:nowrap; }
+		.un1 { float:left; margin:0; width:16.66%; }
+		.un2 { float:left; margin:0; width:33.33%; }
+		.un3 { float:left; margin:0; width:50%; }
+		.un4 { float:left; margin:0; width:66.66%; }
+		.un5 { float:left; margin:0; width:83.33%; }
+		.un6 { float:left; margin:0; width:100%; }
 	</style>
 </head>
 <body>
 
 <section id=character_creation class=full data-bind=if:true>
-	<template id=basics_edit>
-		<label for=cc_high_concept data-bind=validationElement:character.highConcept>
-			High concept: <input id=cc_high_concept textInput={{character.highConcept}} />
-		</label>
-		<label for=cc_trouble data-bind=validationElement:character.trouble>
-			Trouble: <input id=cc_trouble textInput={{character.trouble}} />
-		</label>
-		<label for=cc_name data-bind=validationElement:character.name>
-			Name: <input id=cc_name textInput={{character.name}} />
-		</label>
-		<button data-bind="click:next">Next</button>
-	</template>
+	<template id=first_page>
+		<template id=basics_edit>
+			<label for=cc_high_concept data-bind=validationElement:character.highConcept>
+				High concept: <input id=cc_high_concept textInput={{character.highConcept}} />
+			</label>
+			<label for=cc_trouble data-bind=validationElement:character.trouble>
+				Trouble: <input id=cc_trouble textInput={{character.trouble}} />
+			</label>
+			<label for=cc_name data-bind=validationElement:character.name>
+				Name: <input id=cc_name textInput={{character.name}} />
+			</label>
+			<button data-bind="click:next">Next</button>
+		</template>
 
-	<template id=basics_view>
-		<label>High concept: <span class=box>{{character.highConcept}}</span></label>
-		<label>Trouble: <span class=box>{{character.trouble}}</span></label>
-		<label>Name: <span class=box>{{character.name}}</span></label>
-	</template>
+		<template id=basics_view>
+			<label>High concept: <span class=box>{{character.highConcept}}</span></label>
+			<label>Trouble: <span class=box>{{character.trouble}}</span></label>
+			<label>Name: <span class=box>{{character.name}}</span></label>
+		</template>
 
-	<p data-bind=template:{name:basicsTemplate}></p>
+		<p data-bind=template:{name:basicsTemplate}></p>
 
-	<template id=phase_edit>
-		<label for=cc_phase_{{ord}} data-bind=validationElement:phase.adventure>
-			Phase {{ord}}: <textarea id=cc_phase_{{ord}} class=tall textInput={{phase.adventure}} rows=4></textarea>
-		</label>
-		<label for=cc_aspect_{{ord}} data-bind=validationElement:phase.aspect>
-			Aspect: <input id=cc_aspect_{{ord}} textInput={{phase.aspect}} />
-		</label>
-		<button data-bind="click:$parent.next">Next</button>
-	</template>
+		<template id=phase_edit>
+			<label for=cc_phase_{{ord}} data-bind=validationElement:phase.adventure>
+				Phase {{ord}}: <textarea id=cc_phase_{{ord}} class=tall textInput={{phase.adventure}} rows=4></textarea>
+			</label>
+			<label for=cc_aspect_{{ord}} data-bind=validationElement:phase.aspect>
+				Aspect: <input id=cc_aspect_{{ord}} textInput={{phase.aspect}} />
+			</label>
+			<button data-bind="click:$parent.next">Next</button>
+		</template>
 
-	<template id=phase_view>
-		<label>Phase {{ord}}: <span class="box tall">{{phase.adventure}}</span></label>
-		<label>Aspect: <span class=box>{{phase.aspect}}</span></label>
-	</template>
+		<template id=phase_view>
+			<label>Phase {{ord}}: <span class="box tall">{{phase.adventure}}</span></label>
+			<label>Aspect: <span class=box>{{phase.aspect}}</span></label>
+		</template>
 
-	<!--ko foreach:phases-->
-		<!--ko if:ord<=$parent.status()-->
-			<p data-bind=template:{name:template}></p>
+		<!--ko foreach:phases-->
+			<!--ko if:ord<=$parent.status()-->
+				<p data-bind=template:{name:template}></p>
+			<!--/ko-->
 		<!--/ko-->
-	<!--/ko-->
+	</template>
+
+	<template id=main_page>
+		<div class=un5>
+			<label>Name: <span class=box>{{character.name}}</span></label>
+
+			<template id=description_edit>
+				<label for=cc_description data-bind=if:status()==4,validationElement:character.description>
+					Description: <textarea id=cc_description class=tall textInput={{character.description}} rows=4></textarea>
+				</label>
+				<button data-bind="click:next">Next</button>
+			</template>
+			<template id=description_view>
+				<label>Description: <span class="box tall">{{character.description}}</span></label>
+			</template>
+			<!--ko template:{name:descriptionTemplate}--><!--/ko-->
+		</div>
+		<div class=un1 data-bind="if:status()>5">
+			<label>Refresh: <br><span class="box tall">{{character.refresh}}</span></label>
+		</div>
+		<div class=un3 data-bind="if:status()>4">
+			<h3>Aspects</h3>
+			<label><small>High concept:</small> <span class=box>{{character.highConcept}}</span></label>
+			<label><small>Trouble:</small> <span class=box>{{character.trouble}}</span></label>
+			<!--ko foreach:phases-->
+			<label><span class=box>{{phase.aspect}}</span></label>
+			<!--/ko-->
+		</div>
+
+	</template>
+
+	<!--ko template:{name:page()+'_page'}--><!--/ko-->
 </section>
 
 <section id=character_sheet data-bind=if:false>
@@ -92,14 +132,6 @@
 	</div>
 </section>
 
-<section id=validation data-bind=if:false>
-	<form action=data:text/plain,{{property}} data-bind=validationOptions:{insertMessages:false} method=post>
-		<input value={{property}} />
-		<p data-bind=validationMessage:property></p>
-		<input type=submit>
-	</form>
-</section>
-
 <script type=application/javascript>
 
 ko.validation.init({
@@ -115,6 +147,10 @@ ko.validation.registerExtenders()
 
 var cc = {}
 cc.status = ko.observable(0)
+cc.page = ko.computed(function() {
+	if (cc.status() < 4) return 'first'
+	return 'main'
+})
 cc.next = function() {
 	var st = cc.status()
 	switch (st) {
@@ -134,6 +170,13 @@ cc.next = function() {
 			return cc.status(st + 1)
 		} else {
 			return ph.errors.showAllMessages()
+		}
+	case 4:
+		if (cc.descriptionOk()) {
+			cc.descriptionTemplate('description_view')
+			return cc.status(5)
+		} else {
+			cc.descriptionErrors.showAllMessages()
 		}
 	}
 }
@@ -183,6 +226,15 @@ for (var i = 1; i <= 3; i++) {
 	cc.phases.push(ccph)
 }
 
+character.description = ko.observable().extend({
+	nonEmpty : {
+		message : 'Why not give your character a nice description?'
+	}
+})
+cc.descriptionErrors = ko.validation.group(character.description)
+cc.descriptionOk = ko.computed(function() { return cc.descriptionErrors().length === 0 })
+cc.descriptionTemplate = ko.observable('description_edit')
+
 ko.applyBindings(cc, document.getElementById('character_creation'))
 
 var character = {
@@ -206,9 +258,6 @@ var dragDrop = {
 	drop : function(data, model) { model.dragFrom.remove(data); model.dropTo.push(data) }
 }
 ko.applyBindings(dragDrop, document.getElementById('dragdrop'))
-
-var validation = { property : ko.observable().extend({ required : { message : 'Missing value!', params : true } }) }
-ko.applyBindings(validation, document.getElementById('validation'))
 </script>
 
 </body>
