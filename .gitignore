@@ -1,0 +1,5 @@
+lib/
+dist/
+report/
+bower_components/
+node_modules/

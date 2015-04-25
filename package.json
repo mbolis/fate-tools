@@ -1,0 +1,35 @@
+{
+  "name": "fate-tools",
+  "version": "0.1.0",
+  "description": "A collection of browser tools for running Fate games",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/mbolis/fate-tools"
+  },
+  "keywords": [
+    "Fate",
+    "browser",
+    "game",
+    "RPG",
+    "tools"
+  ],
+  "author": "Marco Bolis <mbolis1984@gmail.com>",
+  "license": "GPL3+",
+  "bugs": {
+    "url": "https://github.com/mbolis/fate-tools/issues"
+  },
+  "devDependencies": {
+    "dalekjs": "0.0.9",
+    "gulp-dalek": "0.0.1",
+    "dalek-reporter-html": "0.0.4",
+    "gulp-bower": "0.0.10",
+    "gulp": "~3.8.11",
+    "del": "~1.1.1",
+    "gulp-connect": "~2.2.0",
+    "gulp-callback": "0.0.3"
+  }
+}

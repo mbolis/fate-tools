@@ -1,0 +1,28 @@
+{
+  "name": "fate-tools",
+  "version": "0.1.0",
+  "authors": [
+    "Marco Bolis <mbolis1984@gmail.com>"
+  ],
+  "description": "A collection of browser tools for conducting a Fate game.",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "Fate",
+    "RPG",
+    "game",
+    "tools"
+  ],
+  "license": "GPL3+",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "knockout": "~3.3.0"
+  }
+}
