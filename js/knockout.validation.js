@@ -1,0 +1,1 @@
+../bower_components/knockout-validation/dist/knockout.validation.min.js
