@@ -23,6 +23,9 @@
     "tests"
   ],
   "dependencies": {
-    "knockout": "~3.3.0"
+    "knockout-dragdrop": "~1.6.1",
+    "knockout.punches": "~0.5.1",
+    "knockout-validation": "~2.0.2",
+    "knockoutjs": "~3.3.0"
   }
 }

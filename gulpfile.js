@@ -1,5 +1,4 @@
 var gulp = require('gulp')
-var bower = require('gulp-bower')
 var connect = require('gulp-connect')
 var dalek = require('gulp-dalek')
 var gcb = require('gulp-callback')
@@ -14,11 +13,6 @@ gulp.task('clean-lib', function(done) {
 })
 
 gulp.task('cleanup', ['clean', 'clean-lib'])
-
-gulp.task('lib', function() {
-	return bower()
-		.pipe(gulp.dest('lib/'))
-})
 
 gulp.task('_build', function() {
 	
