@@ -14,23 +14,29 @@
 	<style>
 		body  { font:16px Arial,"DejaVu Sans",sans-serif; }
 		label { display:block; text-align:right; position:relative; }
-		.full { width:800px; }
+		.full { width:1024px; }
 		input, textarea { width:78%; vertical-align:middle; border:1px solid silver; margin:0.25em 0; padding:0.125em; font:16px Arial,"DejaVu Sans",sans-serif; }
 		.box  { display:inline-block; width:78%; text-align:left; border:1px solid silver; vertical-align:middle; margin:0.25em 0; padding:0.125em; }
 		.tall { min-height:6em; }
 		small { font-size:70%; }
 		input.validationElement, textarea.validationElement { border-color:pink; box-shadow:red 0 0 4px -2px; }
 		.validationMessage { position:absolute; color:red; margin:0.5em; white-space:nowrap; }
-		.un1 { float:left; margin:0; padding:0.5em; width:16%; }
-		.un2 { float:left; margin:0; padding:0.5em; width:32%; }
-		.un3 { float:left; margin:0; padding:0.5em; width:48%; }
-		.un4 { float:left; margin:0; padding:0.5em; width:64%; }
-		.un5 { float:left; margin:0; padding:0.5em; width:80%; }
-		.un6 { float:left; margin:0; padding:0.5em; width:96%; }
+		.un1 { position:relative; float:left; margin:0; padding:0.5em; width:16%; }
+		.un2 { position:relative; float:left; margin:0; padding:0.5em; width:32%; }
+		.un3 { position:relative; float:left; margin:0; padding:0.5em; width:48%; }
+		.un4 { position:relative; float:left; margin:0; padding:0.5em; width:64%; }
+		.un5 { position:relative; float:left; margin:0; padding:0.5em; width:80%; }
+		.un6 { position:relative; float:left; margin:0; padding:0.5em; width:96%; }
 		.clearfix::after { content:''; display:table; clear:both; }
 		.clear { clear:both; }
 		.next-btn { float:right; }
 		.hidden { display:none; }
+		.skills th { font-weight:normal; white-space:nowrap; text-align:right; }
+		.skills td { min-width:7em; }
+		.skills .available { border:1px solid gray; }
+		.skills span { border:1px solid gainsboro; background:white; }
+		.overlay-right { position:absolute; top:0; right:-40%; bottom:0; left:100%; margin:1.5em; background:gainsboro; }
+		.overlay-right > div { float:left; padding:0.125em 0.25em; border:1px solid gray; margin:3px; background:white; }
 	</style>
 </head>
 <body>
@@ -54,6 +60,12 @@
 	</template>
 
 	<template id=array_edit>
+		{{#foreach: value}}
+		<label for=cc_{{name}}_{{$index}} data-bind=validationElement:$data>
+			{{#if: $parent.label[$index()] }}<small>{{$parent.label[$index()]}}:</small> {{/if}}
+			<input id=cc_{{name}}_{{$index}} textInput={{$data}} />
+		</label>
+		{{/foreach}}
 	</template>
 	<template id=array_view>
 		{{#foreach: value}}
@@ -62,6 +74,24 @@
 			<span class=box>{{$data}}</span>
 		</label>
 		{{/foreach}}
+	</template>
+
+	<template id=skills_edit>
+		<table class=skills>
+			<tbody data-bind=foreach:value.slice().reverse()>
+				<tr>
+					<th>{{label}} (+{{rank}}): </th>
+					<!--ko foreach:slots-->
+					<td data-bind="dropZone:{accepts:['skills.add','skills.remove'],drop:addSkill},dragZone:{name:'skills.remove',dragStart:dragEnd,dragStop:dragEnd}">
+						<span class=box css={{{available:available}}}>{{selection}}&nbsp;</span>
+					</td>
+					<!--/ko-->
+				</tr>
+			</tbody>
+		</table>
+		<div css={{overlay}} foreach={{skillList}} data-bind="dropZone:{accepts:'skills.remove',drop:removeSkill}">
+			<div data-bind="dragZone:{name:'skills.add'}">{{$data}}</div>
+		</div>
 	</template>
 
 	<template id=heading_view>
@@ -126,7 +156,7 @@
 		/*
 		 * Dials & References
 		 */
-		var ladder = {
+		var ladder = ko.observableArray([
 			{ value : -1, label : 'Poor' },
 			{ value : -2, label : 'Terrible' },
 			{ value : 0, label : 'Mediocre' },
@@ -138,8 +168,8 @@
 			{ value : 6, label : 'Fantastic' },
 			{ value : 7, label : 'Epic' },
 			{ value : 8, label : 'Legendary' }
-		}
-		var skills = ko.observableArray([
+		])
+		var skillList = ko.observableArray([
 			'Athletics',
 			'Burglary',
 			'Contacts',
@@ -186,13 +216,93 @@
 			}
 			this.value = value
 		}
-		function Skills(model) {
+		function Skills(model, listPosition) {
 			this.model = model
 			this.type = 'skills'
 			this.label = ko.pureComputed(function() {
 				var cap = skillCap() + 1
-				return ladder().filter(function(e) { return e.value > 0 && e.value <= cap })
+				return ladder().filter(function(e) { return e.value > 0 && e.value <= cap }).reverse()
 			})
+
+			this.editable = ko.observable(false)
+
+			var self = this
+
+			var cap = skillCap()
+			var skills = getProperty(model, 'skills')
+			if (!skills) {
+				setProperty(model, 'skills', skills = ko.observableArray())
+				for (var rank = 1; rank <= cap + 1; rank++) {
+					var selection = ko.observableArray()
+
+					skills.push({
+						rank : rank,
+						selection : selection
+					})
+
+					for (var i = rank; i <= cap; i++) {
+						selection.push(ko.observable())
+					}
+				}
+
+				this.editable(true)
+			}
+
+			function mkLabel(rank) {
+				return ko.pureComputed(function() {
+					return ladder()
+						.find(function(l) { return l.value == rank })
+						.label
+				})
+			}
+
+			var value = ko.observableArray()
+			for (var i = 0; i <= cap; i++) {
+				var skillRank = skills()[i]
+				var rank = skillRank.rank
+				var label = mkLabel(rank)
+				var slots = ko.observableArray()
+				var selection = skillRank.selection()
+
+				value.push({
+					rank : rank,
+					label : label,
+					slots : slots
+				})
+
+				for (var j = 0; j <= cap; j++) {
+					var skill = selection[j]
+					slots.push({
+						available : ko.observable(!!skill),
+						selection : skill ? skill : undefined,
+						addSkill : function(data, slot, e) {
+							var prev = slot.selection()
+							if (data.selection) {
+								slot.selection(data.selection())
+								data.selection(prev)
+							} else {
+								slot.selection(data)
+								self.skillList.remove(data)
+								if (prev) {
+									self.skillList.push(prev)
+									self.skillList.sort()
+								}
+							}
+						}
+					})
+				}
+			}
+			this.value = value
+
+			this.overlay = ko.observable('overlay-' + (listPosition || 'right'))
+			this.skillList = ko.observableArray(skillList.slice())
+
+			this.removeSkill = function(data, skills) {
+				var skill = data.selection()
+				data.selection(null)
+				skills.skillList.push(skill)
+				skills.skillList.sort()
+			}
 		}
 		function Heading(text) {
 			this.type = 'heading'
@@ -266,7 +376,7 @@
 
 		var character = { aspects : [], phases : [], refresh : ko.observable(3) }
 		var characterCreation = new Wizard([
-			new Page([
+			/*new Page([
 				new Step([
 					new Field(character, 'aspects[0]', 'text', 'High Concept', new NonEmpty('A character must have a high concept!')),
 					new Field(character, 'aspects[1]', 'text', 'Trouble', new NonEmpty('A character must have a trouble!')),
@@ -276,15 +386,15 @@
 					new Field(character, 'phases[0]', 'longtext', 'Phase 1', new NonEmpty('Fill in with some interesting story detail...')),
 					new Field(character, 'aspects[2]', 'text', 'Aspect', new NonEmpty('Come on, try to come up with some aspect!'))
 				], 'un6'),
-				/*new Step([
+				new Step([
 					new Field(character, 'phases[1]', 'longtext', 'Phase 2', new NonEmpty('Fill in with some interesting story detail...')),
 					new Field(character, 'aspects[3]', 'text', 'Aspect', new NonEmpty('Come on, try to come up with some aspect!'))
 				], 'un6'),
 				new Step([
 					new Field(character, 'phases[2]', 'longtext', 'Phase 3', new NonEmpty('Fill in with some interesting story detail...')),
 					new Field(character, 'aspects[4]', 'text', 'Aspect', new NonEmpty('Come on, try to come up with some aspect!'))
-				], 'un6')*/
-			]),
+				], 'un6')
+			]),*/
 			mainPage = new Page([
 				new Step([
 					new Field(character, 'name', 'text', 'Name'),
@@ -296,11 +406,11 @@
 				new Step([
 					new Heading('Aspects'),
 					new Field(character, 'aspects', 'array', ['High Concept', 'Trouble'])
-				], 'un3'),
+				], 'un2'),
 				new Step([
 					new Heading('Skills'),
 					new Skills(character)
-				], 'un3')
+				], 'un4')
 			])
 		], function() {
 		})
