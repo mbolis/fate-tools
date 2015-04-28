@@ -3,6 +3,7 @@
 <head>
 	<title>Fate tools</title>
 	<script src=js/jquery.js type=application/javascript></script>
+	<script src=js/jquery-ui.js type=application/javascript></script>
 	<script src=js/knockout.js type=application/javascript></script>
 	<script src=js/knockout.validation.js type=application/javascript></script>
 	<script src=js/knockout.dragdrop.js type=application/javascript></script>
@@ -12,13 +13,15 @@
 	</script>
 
 	<style>
-		body  { font:16px Arial,"DejaVu Sans",sans-serif; }
+		body  { font:12px Arial,"DejaVu Sans",sans-serif; }
 		label { display:block; text-align:right; position:relative; }
 		.full { width:1024px; }
-		input, textarea { width:78%; vertical-align:middle; border:1px solid silver; margin:0.25em 0; padding:0.125em; font:16px Arial,"DejaVu Sans",sans-serif; }
-		.box  { display:inline-block; width:78%; text-align:left; border:1px solid silver; vertical-align:middle; margin:0.25em 0; padding:0.125em; }
-		.tall { min-height:6em; }
-		small { font-size:70%; }
+		input, textarea { width:82%; vertical-align:middle; border:1px solid silver; margin:0.25em 0; padding:0.125em; font:12px Arial,"DejaVu Sans",sans-serif; }
+		.box   { display:inline-block; width:82%; text-align:left; border:1px solid silver; vertical-align:middle; margin:0.25em 0; padding:0.125em; }
+		.tall  { min-height:3em; }
+		.block { text-align:center; }
+		.block > label { padding: 0.5em; text-align: center; }
+		.block span { text-align:center; width:60%; margin:1em; }
 		input.validationElement, textarea.validationElement { border-color:pink; box-shadow:red 0 0 4px -2px; }
 		.validationMessage { position:absolute; color:red; margin:0.5em; white-space:nowrap; }
 		.un1 { position:relative; float:left; margin:0; padding:0.5em; width:16%; }
@@ -31,12 +34,16 @@
 		.clear { clear:both; }
 		.next-btn { float:right; }
 		.hidden { display:none; }
+		.skills    { margin-bottom:1.5em; }
 		.skills th { font-weight:normal; white-space:nowrap; text-align:right; }
-		.skills td { min-width:7em; }
+		.skills td { min-width:6em; text-align:center; }
 		.skills .available { border:1px solid gray; }
-		.skills span { border:1px solid gainsboro; background:white; }
-		.overlay-right { position:absolute; top:0; right:-40%; bottom:0; left:100%; margin:1.5em; background:gainsboro; }
+		.skills span { border:1px solid gainsboro; background:white; margin:0.075em; text-align:center; }
+		.overlay-right { position:absolute; top:0; right:-48%; bottom:0; left:100%; margin:1.5em; background:gainsboro; }
 		.overlay-right > div { float:left; padding:0.125em 0.25em; border:1px solid gray; margin:3px; background:white; }
+		.draggable { cursor:grab; }
+		.dragging  { opacity:0.5; }
+		.ui-draggable-dragging { width:auto; }
 	</style>
 </head>
 <body>
@@ -62,7 +69,7 @@
 	<template id=array_edit>
 		{{#foreach: value}}
 		<label for=cc_{{name}}_{{$index}} data-bind=validationElement:$data>
-			{{#if: $parent.label[$index()] }}<small>{{$parent.label[$index()]}}:</small> {{/if}}
+			{{#if: $parent.label[$index()] }}{{$parent.label[$index()]}}: {{/if}}
 			<input id=cc_{{name}}_{{$index}} textInput={{$data}} />
 		</label>
 		{{/foreach}}
@@ -70,7 +77,7 @@
 	<template id=array_view>
 		{{#foreach: value}}
 		<label>
-			{{#if: $parent.label[$index()] }}<small>{{$parent.label[$index()]}}:</small> {{/if}}
+			{{#if: $parent.label[$index()] }}{{$parent.label[$index()]}}: {{/if}}
 			<span class=box>{{$data}}</span>
 		</label>
 		{{/foreach}}
@@ -82,16 +89,41 @@
 				<tr>
 					<th>{{label}} (+{{rank}}): </th>
 					<!--ko foreach:slots-->
-					<td data-bind="dropZone:{accepts:['skills.add','skills.remove'],drop:addSkill},dragZone:{name:'skills.remove',dragStart:dragEnd,dragStop:dragEnd}">
-						<span class=box css={{{available:available}}}>{{selection}}&nbsp;</span>
+					<td>
+						{{#if: available() && selection()}}<span class="box available" data-bind="
+								drop:{accept:['skills-add','skills-remove'],ondrop:addSkill},
+								drag:{type:'skills-remove'}">{{selection}}</span>{{/if}}
+						{{#if: available() && !selection()}}<span class="box available" data-bind="
+								drop:{accept:['skills-add','skills-remove'],ondrop:addSkill}">&nbsp;</span>{{/if}}
+						{{#ifnot: available}}<span class=box>&nbsp;</span>{{/ifnot}}
 					</td>
 					<!--/ko-->
 				</tr>
 			</tbody>
 		</table>
-		<div css={{overlay}} foreach={{skillList}} data-bind="dropZone:{accepts:'skills.remove',drop:removeSkill}">
-			<div data-bind="dragZone:{name:'skills.add'}">{{$data}}</div>
+		<div css={{overlay}} foreach={{skillList}} data-bind="drop:{accept:'skills-remove',ondrop:removeSkill}">
+			<div data-bind="drag:{type:'skills-add'}">{{$data}}</div>
 		</div>
+		<div data-bind=validationElement:value><input type=hidden value={{value}} /></div>
+	</template>
+	<template id=skills_view>
+		<table class=skills>
+			<tbody data-bind=foreach:value.slice().reverse()>
+				<tr>
+					<th>{{label}} (+{{rank}}): </th>
+					<!--ko foreach:slots-->
+					<td>
+						{{#if: available()}}<span class="box available">{{selection}}&nbsp;</span>{{/if}}
+						{{#ifnot: available}}<span class=box>&nbsp;</span>{{/ifnot}}
+					</td>
+					<!--/ko-->
+				</tr>
+			</tbody>
+		</table>
+	</template>
+
+	<template id=trigger_view>
+		{{#if: fn()}}{{/if}}
 	</template>
 
 	<template id=heading_view>
@@ -101,7 +133,7 @@
 	<template id=wizard>
 		<!--ko with:currentPage-->
 		<div class=clearfix data-bind=foreach:steps>
-			<div class="clearfix {{divClass}}">
+			<div class="clearfix" css={{css}}>
 				{{#foreach: fields}}
 					{{#template type + (editable() ? '_edit' : '_view') /}}
 				{{/foreach}}
@@ -144,14 +176,84 @@
 		}
 
 		/*
-		 * KO initialization
+		 * KO Validation initialization
 		 */
 		ko.validation.init({ decorateInputElement:true })
 		ko.validation.rules.nonEmpty = {
 			validator : function(value) { return value && value.trim().length },
 			message : 'The value should not be empty.'
 		}
+		ko.validation.rules.skillsSelected = {
+			validator : function(value) { return value.every(function(e) {
+				return e.slots().filter(function(s) { return s.available() }).every(function(s) { return !!s.selection() })
+			}) },
+			message : 'You should fill in all skill ranks.'
+		}
 		ko.validation.registerExtenders()
+
+		/*
+		 * KO Custom bindings
+		 */
+		ko.bindingHandlers.drag = {
+			init : function(element, valueAccessor, allBindings, _vm, bindingContext) {
+				var $this = $(element).addClass('draggable')
+				var value = valueAccessor()
+				if ('type' in value) {
+					$this.addClass('drag-' + value.type.trim().replace(/\s+/g, '-'))
+				}
+				var item = ko.unwrap(bindingContext.$data)
+				var opts = {
+					addClasses : false,
+					cursor : 'grabbing',
+					distance : 3,
+					helper : 'clone',
+					opacity : 0.8,
+					revert : 'invalid',
+					revertDuration : 100,
+					stack : '.draggable',
+					start : function(e, ui) {
+						ui.helper.data('drag-data', item)
+						$this.addClass('dragging')
+						value.onstart && value.onstart(e, item, bindingContext)
+					},
+					drag : value.ondrag ? function(e) { value.ondrag(e, item, bindingContext) } : undefined,
+					stop : function(e, ui) {
+						$this.removeClass('dragging')
+						value.onstop && value.onstop(e, item, bindingContext)
+					}
+				}
+				$this.draggable(opts).disableSelection()
+			}
+		}
+		ko.bindingHandlers.drop = {
+			init : function(element, valueAccessor, allBindings, _vm, bindingContext) {
+				var $this = $(element).addClass('droppable')
+				var value = valueAccessor()
+				console.log(value)
+				var opts = {
+					activeClass : 'drop-accept',
+					addClasses : false,
+					hoverClass : 'drop-hover',
+					scope : value.scope || 'default',
+					tolerance : 'pointer',
+					drop : function(e, ui) {
+						var data = ui.helper.data('drag-data')
+						value.ondrop && value.ondrop(data, bindingContext.$data)
+					}
+				}
+				if ('accept' in value) {
+					var accept = value.accept
+					if (typeof accept === 'function') {
+						opts.accept = accept
+					} else if (typeof accept === 'string' && accept.length) {
+						opts.accept = '.drag-' + accept
+					} else if (accept instanceof Array && accept.length) {
+						opts.accept = '.drag-' + accept.join(',.drag-')
+					}
+				}
+				$this.droppable(opts).disableSelection()
+			}
+		}
 
 		/*
 		 * Dials & References
@@ -256,7 +358,7 @@
 				})
 			}
 
-			var value = ko.observableArray()
+			var value = []
 			for (var i = 0; i <= cap; i++) {
 				var skillRank = skills()[i]
 				var rank = skillRank.rank
@@ -276,6 +378,9 @@
 						available : ko.observable(!!skill),
 						selection : skill ? skill : undefined,
 						addSkill : function(data, slot, e) {
+							if (!slot.available()) {
+								return false
+							}
 							var prev = slot.selection()
 							if (data.selection) {
 								slot.selection(data.selection())
@@ -292,7 +397,7 @@
 					})
 				}
 			}
-			this.value = value
+			this.value = ko.observableArray(value).extend({ skillsSelected : true })
 
 			this.overlay = ko.observable('overlay-' + (listPosition || 'right'))
 			this.skillList = ko.observableArray(skillList.slice())
@@ -303,6 +408,11 @@
 				skills.skillList.push(skill)
 				skills.skillList.sort()
 			}
+		}
+		function Trigger(fn) {
+			this.type = 'trigger'
+			this.fn = fn
+			this.editable = function() { return false }
 		}
 		function Heading(text) {
 			this.type = 'heading'
@@ -315,7 +425,8 @@
 			var errors = this.errors = ko.validation.group(fields.map(function(f) { return f.value }))
 			this.isValid = ko.computed(function() { return errors().length === 0 })
 
-			this.divClass = divClass
+			this.divClass = ko.observableArray([].concat(divClass))
+			this.css = ko.computed(function() { return this.divClass().join(' ') }, this)
 			this.complete = ko.computed({
 				owner : this,
 				read : function() {
@@ -342,8 +453,8 @@
 				var step = self.steps()[curr]
 				if (step.isValid()) {
 					step.complete(true)
-					self.currentStep(curr + 1)
 					while (self.waitingSteps().length && step.complete()) {
+						self.currentStep(++curr)
 						self.steps.push( step = self.waitingSteps.shift() )
 					}
 				} else {
@@ -374,6 +485,8 @@
 			}
 		}
 
+		var mainPage, refresh
+
 		var character = { aspects : [], phases : [], refresh : ko.observable(3) }
 		var characterCreation = new Wizard([
 			/*new Page([
@@ -400,16 +513,19 @@
 					new Field(character, 'name', 'text', 'Name'),
 					new Field(character, 'description', 'longtext', 'Description', new NonEmpty('Why not give your character a nice description?'))
 				], 'un5'),
-				new Step([
+				refresh = new Step([
 					new Field(character, 'refresh', 'text', 'Refresh')
-				], 'un1 hidden'),
+				], ['un1', 'hidden', 'block']),
 				new Step([
 					new Heading('Aspects'),
 					new Field(character, 'aspects', 'array', ['High Concept', 'Trouble'])
-				], 'un2'),
+				], 'un3'),
 				new Step([
 					new Heading('Skills'),
 					new Skills(character)
+				], 'un3'),
+				new Step([
+					new Trigger(function() { console.log(refresh.divClass()); refresh.divClass.remove('hidden') })
 				], 'un4')
 			])
 		], function() {

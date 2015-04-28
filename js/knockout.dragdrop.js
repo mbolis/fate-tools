@@ -1,1 +1,0 @@
-../bower_components/knockout-dragdrop/lib/knockout.dragdrop.js
