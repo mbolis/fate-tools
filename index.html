@@ -6,7 +6,6 @@
 	<script src=js/jquery-ui.js type=application/javascript></script>
 	<script src=js/knockout.js type=application/javascript></script>
 	<script src=js/knockout.validation.js type=application/javascript></script>
-	<script src=js/knockout.dragdrop.js type=application/javascript></script>
 	<script src=js/knockout.punches.js type=application/javascript></script>
 	<script type=application/javascript>
 		ko.punches.enableAll()
@@ -331,9 +330,9 @@
 			var self = this
 
 			var cap = skillCap()
-			var skills = getProperty(model, 'skills')
+			var skills = model.skills
 			if (!skills) {
-				setProperty(model, 'skills', skills = ko.observableArray())
+				model.skills = skills = ko.observableArray()
 				for (var rank = 1; rank <= cap + 1; rank++) {
 					var selection = ko.observableArray()
 
@@ -418,19 +417,6 @@
 			var stunts = model.stunts
 			if (!stunts) {
 				model.stunts = stunts = ko.observableArray()
-				for (var rank = 1; rank <= cap + 1; rank++) {
-					var selection = ko.observableArray()
-
-					skills.push({
-						rank : rank,
-						selection : selection
-					})
-
-					for (var i = rank; i <= cap; i++) {
-						selection.push(ko.observable())
-					}
-				}
-
 				this.editable(true)
 			}
 		}

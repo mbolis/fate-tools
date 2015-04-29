@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src=js/jquery.js></script>
+		<script src=js/jquery-ui.js></script>
+		<script src=js/knockout.js></script>
+
+		<style>
+			#description { width:800px; height:300px; border:1px solid silver; }
+			.selection { background:#9fa; }
+			.selection > .before { display:inline-block; vertical-align:middle; width:3px; height:1.125em; cursor:w-resize;  }
+			.selection > .after  { display:inline-block; vertical-align:middle; width:3px; height:1.125em; cursor:e-resize;  }
+		</style>
+	</head>
+	<body>
+		<!--section id=description contenteditable data-bind=></section>
+		<button onclick=select()>X</button-->
+
+		<des-extra></des-extra>
+
+		<template id=desex_template>
+			<div class=desex-editor style="width:800px;height:300px;border:1px solid silver" contenteditable data-bind=html:html></div>
+			<!--button class=desex-mark-selection data-bind=click:markSelection,enable:currentSelection>Mark</button-->
+		</template>
+		<script>
+			ko.components.register('des-extra', {
+				viewModel : { createViewModel : function(params, component) {
+						var text = ko.observable('')
+						var html = ko.computed({
+							read : function() {
+								return text().replace(/\n/g, '<br>').replace(/(\s) | (\s|<br>)/g, '$1&nbsp;$2')
+							},
+							write : function(html) {
+								text( html.replace(/<br>/g, '\n').replace(/&nbsp;/g, ' ') )
+							}
+						})
+						var selections = ko.observableArray()
+
+						var currentSelection = ko.observable()
+						function checkSelection(e) {
+							var selection = document.getSelection()
+							currentSelection(selection)
+							if (selection) {
+								if (selection.isCollapsed) {
+									currentSelection(null)
+								} else {
+									for (var i = 0; i < selection.rangeCount; i++) {
+										var range = selection.getRangeAt(i)
+										if (!this.contains(range.commonAncestorContainer)) {
+											currentSelection(null)
+											break
+										}
+									}
+								}
+							}
+							return true
+						}
+						function markSelection() {
+							var selection = currentSelection()
+
+							selection.removeAllRanges()
+							currentSelection(null)
+						}
+
+						var $element = $(component.element)
+						$element.on('mouseup keyup', '.desex-editor', checkSelection)
+
+						return {
+							text : text,
+							html : html,
+							selections : selections,
+							currentSelection : currentSelection
+						}
+					}
+				},
+				template : { element : 'desex_template' }
+			})
+
+			ko.applyBindings()
+		</script>
+
+		<script>
+			ko.bindingHandlers.select = {
+				init : function(element, value, allBindings, _vm, context) {
+				}
+			}
+
+
+			function select() {
+				var selection = document.getSelection()
+				var range = selection.getRangeAt(0)
+
+				var highlight = document.createElement('span')
+				highlight.classList.add('selection')
+				range.surroundContents(highlight)
+
+				var before = document.createElement('span')
+				before.classList.add('before')
+				if (highlight.firstChild) {
+					highlight.insertBefore(before, highlight.firstChild)
+				} else {
+					highlight.appendChild(before)
+				}
+
+				var after = document.createElement('span')
+				after.classList.add('after')
+				highlight.appendChild(after)
+			}
+
+			var description = new (function() {
+				var text = this.text = ko.observable('miao\n\nbau bau     \n\n\ncucu')
+				this.html = ko.computed({
+					read : function() { return text().replace(/\n/g, '<br>').replace(/(\s) | (\s|<br>)/g, '$1&nbsp;$2') },
+					write : function(html) { text(html.replace(/<br>/g, '\n').replace(/&nbsp;/g, ' ')) }
+				})
+				this.selections = ko.observableArray()
+			})
+			//ko.applyBindings(description, document.getElementById('description'))
+		</script>
+	</body>
+</html>
