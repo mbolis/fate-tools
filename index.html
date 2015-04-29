@@ -409,6 +409,31 @@
 				skills.skillList.sort()
 			}
 		}
+		function Stunts(model) {
+			this.model = model
+			this.type = 'stunts'
+
+			this.editable = ko.observable(true)
+
+			var stunts = model.stunts
+			if (!stunts) {
+				model.stunts = stunts = ko.observableArray()
+				for (var rank = 1; rank <= cap + 1; rank++) {
+					var selection = ko.observableArray()
+
+					skills.push({
+						rank : rank,
+						selection : selection
+					})
+
+					for (var i = rank; i <= cap; i++) {
+						selection.push(ko.observable())
+					}
+				}
+
+				this.editable(true)
+			}
+		}
 		function Trigger(fn) {
 			this.type = 'trigger'
 			this.fn = fn
@@ -516,16 +541,17 @@
 				refresh = new Step([
 					new Field(character, 'refresh', 'text', 'Refresh')
 				], ['un1', 'hidden', 'block']),
-				new Step([
+				/*new Step([
 					new Heading('Aspects'),
 					new Field(character, 'aspects', 'array', ['High Concept', 'Trouble'])
 				], 'un3'),
 				new Step([
 					new Heading('Skills'),
 					new Skills(character)
-				], 'un3'),
+				], 'un3'),*/
 				new Step([
-					new Trigger(function() { console.log(refresh.divClass()); refresh.divClass.remove('hidden') })
+					new Trigger(function() { console.log(refresh.divClass()); refresh.divClass.remove('hidden') }),
+					new Stunts(character)
 				], 'un4')
 			])
 		], function() {
