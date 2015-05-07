@@ -3,6 +3,7 @@
 	<head>
 		<script src=js/jquery.js></script>
 		<script src=js/jquery-ui.js></script>
+		<script src=js/jquery-observe.js></script>
 		<script src=js/knockout.js></script>
 
 		<style>
@@ -20,39 +21,110 @@
 
 		<template id=desex_template>
 			<div class=desex-editor style="width:800px;height:300px;border:1px solid silver" contenteditable data-bind=html:html></div>
-			<!--button class=desex-mark-selection data-bind=click:markSelection,enable:currentSelection>Mark</button-->
+			<button class=desex-mark-selection data-bind=click:markSelection,enable:currentSelection>Mark</button>
 		</template>
 		<script>
+
+			function toHTML(text) {
+				return text.replace(/\n/g, '<br>').replace(/(\s) | (\s|<br>)/g, '$1&nbsp;$2')
+			}
+			function fromHTML(html) {
+				return html.replace(/<br>/g, '\n').replace(/&nbsp;/g, ' ')
+			}
+
+			function Desex(text) {
+				this.text = ko.observable(text || '')
+				this.selections = ko.observableArray()
+				this.html = ko.computed({
+					owner : this,
+					read : function() {
+						var html = ''
+						var index = 0
+
+						var text = this.text()
+						var selections = this.selections()
+						
+						for (var i = 0, l = selections.length; i < l; i++) {
+							var sel = selections[i]
+							var leading = toHTML( text.substring(index, sel.start()) )
+							html += '<span>' + leading + '</span>'
+							html += sel.html()
+							index = sel.end()
+						}
+						var trailing = toHTML( text.substring(index) )
+						if (trailing) {
+							html += '<span>' + trailing + '</span>'
+						}
+
+						return html
+					}
+				})
+				this.select = function(start, end, name, links) {
+					this.selections.push(new Selection(this, start, end, name, links))
+					return this
+				}
+			}
+
+			var selectionCount = 0
+			function Selection(document, start, end, name, links) {
+				var id = 'desex_selection_' + (++selectionCount)
+
+				this.start = ko.observable(start)
+				this.end = ko.observable(end)
+				this.name = ko.observable(name)
+				this.links = ko.observableArray(links || [])
+
+				var self = this
+
+				this.text = ko.computed({
+					read : function() {
+						return document.text().substring(self.start(), self.end())
+					},
+					write : function(newValue) {
+						var start = self.start()
+						var end = self.end()
+						var oldText = document.text()
+						var leading = oldText.substring(0, start)
+						var trailing = oldText.substring(end)
+
+						document.text(leading + newValue + trailing)
+						self.end(start + newValue.length)
+					}
+				})
+				this.html = ko.computed(function() {
+					return '<span id=' + id + ' class=desex-selection title="' + self.name() + '">' + toHTML( self.text() ) + '</span>'
+				})
+			}
+
 			ko.components.register('des-extra', {
 				viewModel : { createViewModel : function(params, component) {
-						var text = ko.observable('')
-						var html = ko.computed({
-							read : function() {
-								return text().replace(/\n/g, '<br>').replace(/(\s) | (\s|<br>)/g, '$1&nbsp;$2')
-							},
-							write : function(html) {
-								text( html.replace(/<br>/g, '\n').replace(/&nbsp;/g, ' ') )
-							}
-						})
-						var selections = ko.observableArray()
+						var desex = new Desex('miao miao miao').select(5, 9, 'Miao')
 
 						var currentSelection = ko.observable()
 						function checkSelection(e) {
-							var selection = document.getSelection()
-							currentSelection(selection)
-							if (selection) {
-								if (selection.isCollapsed) {
-									currentSelection(null)
-								} else {
-									for (var i = 0; i < selection.rangeCount; i++) {
-										var range = selection.getRangeAt(i)
-										if (!this.contains(range.commonAncestorContainer)) {
-											currentSelection(null)
-											break
+							if (e.type === 'keyup' && !e.key.startsWith('Arrow')) {
+								return true;
+							}
+
+							var self = this
+							setTimeout(function() {
+								var selection = document.getSelection()
+								currentSelection(selection)
+								if (selection) {
+									if (selection.isCollapsed) {
+										currentSelection(null)
+									} else {
+										for (var i = 0; i < selection.rangeCount; i++) {
+											var range = selection.getRangeAt(i)
+											if (!self.contains( range.commonAncestorContainer )) { // TODO : no selecting already marked selections
+												currentSelection(null)
+												break
+											}
 										}
 									}
 								}
-							}
+							}, 0)
+
 							return true
 						}
 						function markSelection() {
@@ -65,12 +137,23 @@
 						var $element = $(component.element)
 						$element.on('mouseup keyup', '.desex-editor', checkSelection)
 
-						return {
-							text : text,
-							html : html,
-							selections : selections,
-							currentSelection : currentSelection
-						}
+						var observer = new MutationObserver(function(records) {
+							var record = records[0]
+							var target = record.target
+							if (record.type === 'characterData') {
+								target = target.parentElement
+							}
+							if ($(target).is('span')) {
+								console.log(target)
+							}
+						})
+						$('.desex-editor', $element).each(function() {
+							observer.observe(this, { childList : true, characterData : true, subtree : true })
+						})
+
+						desex.currentSelection = currentSelection
+						desex.markSelection = markSelection
+						return desex
 					}
 				},
 				template : { element : 'desex_template' }

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Workspaces</title>
+		<script src=js/jquery.js></script>
+		<!--script src=js/jquery-ui.js></script-->
+		<script src=js/knockout.js></script>
+
+		<style>
+			#description { width:800px; height:300px; border:1px solid silver; }
+			.desex-selection { background:#9fa; }
+			.desex-selection-tools { position:absolute; display:none; }
+			.selection > .before { display:inline-block; vertical-align:middle; width:3px; height:1.125em; cursor:w-resize;  }
+			.selection > .after  { display:inline-block; vertical-align:middle; width:3px; height:1.125em; cursor:e-resize;  }
+
+			.desex-editor { width:800px; height:300px; border:1px solid silver; }
+			#desex_test { padding:1.5em; }
+		</style>
+	</head>
+	<body>
+		<div id=desex_test data-bind=if:entity>
+			<template id=desex_plain_text><span data-bind=attr:{id:id},html:html></span></template>
+			<template id=desex_selection><span class=desex-selection data-bind=attr:{id:id},html:html></span></template>
+
+			<div class=desex-editor data-bind=foreach:pieces contenteditable><!--ko template:template--><!--/ko--></div>
+			<div class=desex-controls>
+				<button class=desex-mark data-bind=event:{click:markSelection}>Mark</button>
+			</div>
+		</div>
+
+		<script src=js/workspaces.js></script>
+
+
+	</body>
+</html>
+
